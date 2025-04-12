@@ -36,10 +36,28 @@ spec:
             JSONPatch{
               op: "add", path: "/spec/template/spec/initContainers/-",
               value: Object.spec.template.spec.initContainers{
-                name: "jitter",
+                name: "routes",
                 image: "docker.io/library/busybox:latest",
                 imagePullPolicy: "IfNotPresent",
                 command: ["sh", "-c", "sleep $(shuf -i 0-60 -n 1)"]
               }
-            }
+            },
+            JSONPatch{
+              op: "add", path: "/spec/template/spec/initContainers/-",
+              value: Object.spec.template.spec.initContainers{
+                name: "dns",
+                image: "docker.io/library/busybox:latest",
+                imagePullPolicy: "IfNotPresent",
+                command: ["sh", "-c", "sleep $(shuf -i 0-60 -n 1)"]
+              }
+            },
+            JSONPatch{
+              op: "add", path: "/spec/template/spec/initContainers/-",
+              value: Object.spec.template.spec.initContainers{
+                name: "gateway",
+                image: "docker.io/library/busybox:latest",
+                imagePullPolicy: "IfNotPresent",
+                command: ["sh", "-c", "sleep $(shuf -i 0-60 -n 1)"]
+              }
+            },
           ]
