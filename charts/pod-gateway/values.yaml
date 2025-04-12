@@ -7,7 +7,7 @@
 
 image:
   # -- image repository of the gateway and inserted helper containers
-  repository: ghcr.io/angelnu/pod-gateway
+  repository: ghcr.io/jacaudi/pod-gateway
   # -- image pull policy of the gateway and inserted helper cotainers
   pullPolicy: IfNotPresent
   # -- image tag of the gateway and inserted helper containers
