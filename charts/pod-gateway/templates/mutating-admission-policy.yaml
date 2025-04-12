@@ -1,17 +1,20 @@
+{{- include "bjw-s.common.loader.init" . -}}
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.32.0/mutatingadmissionpolicybinding-admissionregistration-v1alpha1.json
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicyBinding
 metadata:
-  name: pod-gateway
+  name: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}
+  labels:
+    {{- include "bjw-s.common.lib.metadata.allLabels" . | nindent 4 }}
 spec:
-  policyName: pod-gateway
+  policyName: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}-policy
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.32.0/mutatingadmissionpolicy-admissionregistration-v1alpha1.json
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicy
 metadata:
-  name: pod-gateway
+  name: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}-policy
 spec:
   matchConstraints:
     resourceRules:
@@ -20,10 +23,8 @@ spec:
         operations: ["CREATE"]
         resources: ["pods"]
   matchConditions:
-    - name: has-labels
-      expression: 'object.metadata.labels["app.kubernetes.io/podgateway"] == "volsync"'
     - name: has-annotations
-      expression: 'object.metadata.annotations["pod-gateway"] == "true"'
+      expression: 'object.metadata.annotations["setGateway"] == "true"'
   failurePolicy: Fail
   reinvocationPolicy: IfNeeded
   mutations:
