@@ -3,15 +3,15 @@
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicyBinding
 metadata:
-  name: volsync-backup-add-jitter
+  name: pod-gateway
 spec:
-  policyName: volsync-backup-add-jitter
+  policyName: pod-gateway
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.32.0/mutatingadmissionpolicy-admissionregistration-v1alpha1.json
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicy
 metadata:
-  name: volsync-backup-add-jitter
+  name: pod-gateway
 spec:
   matchConstraints:
     resourceRules:
@@ -22,6 +22,8 @@ spec:
   matchConditions:
     - name: has-labels
       expression: 'object.metadata.labels["app.kubernetes.io/podgateway"] == "volsync"'
+    - name: has-annotations
+      expression: 'object.metadata.annotations["pod-gateway"] == "true"'
   failurePolicy: Fail
   reinvocationPolicy: IfNeeded
   mutations:
@@ -37,18 +39,13 @@ spec:
               op: "add", path: "/spec/template/spec/initContainers/-",
               value: Object.spec.template.spec.initContainers{
                 name: "routes",
-                image: "docker.io/library/busybox:latest",
-                imagePullPolicy: "IfNotPresent",
-                command: ["sh", "-c", "sleep $(shuf -i 0-60 -n 1)"]
-              }
-            },
-            JSONPatch{
-              op: "add", path: "/spec/template/spec/initContainers/-",
-              value: Object.spec.template.spec.initContainers{
-                name: "dns",
-                image: "docker.io/library/busybox:latest",
-                imagePullPolicy: "IfNotPresent",
-                command: ["sh", "-c", "sleep $(shuf -i 0-60 -n 1)"]
+                image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
+                imagePullPolicy: {{ .Values.image.pullPolicy }},
+                command: ["/bin/gateway_init.sh"],
+                securityContext: { privileged: true },
+                volumeMounts: [
+                  Object.spec.template.spec.volumeMounts{
+                    name: "config", mountPath: "/config", readOnly: true
               }
             }
           ]
