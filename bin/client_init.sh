@@ -52,7 +52,7 @@ echo $HOSTNAME_REAL
 K8S_DNS_IP="$(cut -d ' ' -f 1 <<< "$K8S_DNS_IPS")"
 GATEWAY_IP="$(dig +short "$GATEWAY_NAME" "@${K8S_DNS_IP}")"
 NAT_ENTRY="$(grep "^$HOSTNAME_REAL " /config/nat.conf || true)"
-VXLAN_GATEWAY_IP="${VXLAN_IP_NETWORK}.1"
+VXLAN_GATEWAY_IP=$(echo "$VXLAN_IP_NETWORK" | awk -F'[./]' '{print $1 "." $2 "." $3 ".1"}')
 
 # Make sure there is correct route for gateway
 # K8S_GW_IP is not set when script is called again and the route should still exist on the pod anyway.
@@ -91,7 +91,7 @@ if [[ -z "$NAT_ENTRY" ]]; then
   udhcpc --now --interface=vxlan0
 else
   IP=$(cut -d' ' -f2 <<< "$NAT_ENTRY")
-  VXLAN_IP="${VXLAN_IP_NETWORK}.${IP}"
+  VXLAN_IP="${VXLAN_STATIC_IP}"
   echo "Use fixed IP $VXLAN_IP"
   ip addr add "${VXLAN_IP}/24" dev vxlan0
   route add default gw "$VXLAN_GATEWAY_IP"

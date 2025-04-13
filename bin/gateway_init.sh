@@ -26,7 +26,7 @@ if [[ $(cat /proc/sys/net/ipv4/ip_forward) -ne 1 ]]; then
 fi
 
 # Create VXLAN NIC
-VXLAN_GATEWAY_IP="${VXLAN_IP_NETWORK}.1"
+VXLAN_GATEWAY_IP=$(echo "$VXLAN_IP_NETWORK" | awk -F'[./]' '{print $1 "." $2 "." $3 ".1"}')
 ip link add vxlan0 type vxlan id $VXLAN_ID dev eth0 dstport "${VXLAN_PORT:-0}" || true
 ip addr add ${VXLAN_GATEWAY_IP}/24 dev vxlan0 || true
 ip link set up dev vxlan0
@@ -76,9 +76,9 @@ if [[ -n "$VPN_INTERFACE" ]]; then
 
       iptables  -t nat -A PREROUTING -p "$PORT_TYPE" -i "$VPN_INTERFACE" \
                 --dport "$PORT_NUMBER"  -j DNAT \
-                --to-destination "${VXLAN_IP_NETWORK}.${IP}:${PORT_NUMBER}"
+                --to-destination "${VXLAN_STATIC_IP}:${PORT_NUMBER}"
 
-      iptables  -A FORWARD -p "$PORT_TYPE" -d "${VXLAN_IP_NETWORK}.${IP}" \
+      iptables  -A FORWARD -p "$PORT_TYPE" -d "${VXLAN_STATIC_IP}" \
                 --dport "$PORT_NUMBER" -m state --state NEW,ESTABLISHED,RELATED \
                 -j ACCEPT
     done
