@@ -42,7 +42,7 @@ spec:
                 name: "routes",
                 image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
                 imagePullPolicy: {{ .Values.image.pullPolicy }},
-                command: ["/bin/gateway_init.sh"],
+                command: ["/bin/client_init.sh"],
                 securityContext: { privileged: true },
                 volumeMounts: [
                   Object.spec.template.spec.volumeMounts{
