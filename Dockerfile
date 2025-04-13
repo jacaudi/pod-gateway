@@ -1,5 +1,9 @@
 FROM public.ecr.aws/docker/library/alpine:3.21.3@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c
 
+ARG VERSION
+ARG REVISION
+ARG IMAGE_SOURCE
+
 WORKDIR /
 
 # iproute2 -> bridge
@@ -16,7 +20,7 @@ RUN apk add --no-cache coreutils dnsmasq-dnssec \
 COPY config /default_config
 COPY config /config
 COPY bin /bin
-CMD [ "/bin/entry.sh" ]
 
-ARG IMAGE_SOURCE
 LABEL org.opencontainers.image.source $IMAGE_SOURCE
+
+CMD [ "/bin/entry.sh" ]
