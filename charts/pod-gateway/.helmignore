@@ -5,6 +5,7 @@
 # Common VCS dirs
 .git/
 .gitignore
+.github
 .bzr/
 .bzrignore
 .hg/
@@ -24,3 +25,8 @@
 OWNERS
 # helm-docs templates
 *.gotmpl
+# Docker
+Dockerfile
+.dockerignore
+bin/**
+config/**
