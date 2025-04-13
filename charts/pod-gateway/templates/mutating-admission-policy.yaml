@@ -39,11 +39,26 @@ spec:
             JSONPatch{
               op: "add", path: "/spec/template/spec/initContainers/-",
               value: Object.spec.template.spec.initContainers{
-                name: "routes",
+                name: "route",
                 image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
                 imagePullPolicy: {{ .Values.image.pullPolicy }},
                 command: ["/bin/client_init.sh"],
                 securityContext: { privileged: true },
+                volumeMounts: [
+                  Object.spec.template.spec.volumeMounts{
+                    name: "config", mountPath: "/config", readOnly: true
+              }
+            },
+            JSONPatch{
+              op: "add", path: "/spec/template/spec/initContainers/-",
+              value: Object.spec.template.spec.initContainers{
+                name: "gateway",
+                image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
+                imagePullPolicy: {{ .Values.image.pullPolicy }},
+                command: ["/bin/client_sidecar.sh"],
+                securityContext: { privileged: true },
+                restartPolicy: Always,
+                dependsOn: ["route"],
                 volumeMounts: [
                   Object.spec.template.spec.volumeMounts{
                     name: "config", mountPath: "/config", readOnly: true
