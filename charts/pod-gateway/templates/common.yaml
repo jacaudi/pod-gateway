@@ -26,18 +26,9 @@ persistence:
         defaultMode: 0555
 
 initContainers:
-  # -- Configures an initContainer that creates a VXLAN
-  # In the gateway for client PODs to connect to.
-  # iptables migh be (see VPN_BLOCK_OTHER_TRAFFIC) setup
-  # to block traffic not going through the VPN
   routes:
-    name: "routes"
-    # -- Image for the init container
     image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
-    # -- Will be set automatically
-    # @default -- <image.pullPolicy>
     imagePullPolicy: {{ .Values.image.pullPolicy }}
-    # -- Command starting DHCP server in the gateway
     command:
     - /bin/gateway_init.sh
     securityContext:
@@ -46,6 +37,16 @@ initContainers:
     - name: config
       mountPath: /config
       readOnly: true
+  coredns:
+    dependsOn:
+      - routes
+    image:
+      repository: mirror.gcr.io/coredns/coredns
+      tag: 1.12.1
+    args:
+      - -conf
+      - /etc/coredns/corefile
+    restartPolicy: Always
 
 probes:
   liveness:
