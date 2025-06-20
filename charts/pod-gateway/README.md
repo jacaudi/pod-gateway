@@ -55,9 +55,8 @@ Kubernetes: `>=1.16.0-0`
 | settings.VXLAN_GATEWAY_FIRST_DYNAMIC_IP | int | `20` | Keep a range of IPs for static assignment in nat.conf |
 | settings.VXLAN_ID | int | `42` | Vxlan ID to use |
 | settings.VXLAN_IP_NETWORK | string | `"172.16.0"` | VXLAN needs an /24 IP range not conflicting with K8S and local IP ranges |
-| webhook | object | See below | The webhook is used to mutate the PODs matching the given namespace labels. It inserts an init and sidecard helper containers that connect to the gateway pod created by this chart. |
-| webhook.gatewayAnnotation | string | `"setGateway"` | annotation name to check when evaluating POD. If true the POD will get the gateway. If not set setGatewayDefault will apply. |
-| webhook.gatewayAnnotationValue | string | `nil` | annotation value to check when evaluating POD. If set, the POD with gatewayAnnotation'value that matches, will get the gateway. If not set gatewayAnnotation boolean value will apply. |
+| policy.gatewayAnnotation | string | `"setGateway"` | Annotation key to check when evaluating POD. If set, the POD with this annotation and the matching value will get the gateway. |
+| policy.gatewayAnnotationValue | string | `"true"` | Annotation value to check when evaluating POD. |
 | webhook.gatewayDefault | bool | `true` | default behviour for new PODs in the evaluated namespace |
 | webhook.gatewayLabel | string | `"setGateway"` | label name to check when evaluating POD. If true the POD will get the gateway. If not set setGatewayDefault will apply. |
 | webhook.gatewayLabelValue | string | `nil` | label value to check when evaluating POD. If set, the POD with the gatewayLabel's value that matches, will get the gateway. If not set gatewayLabel boolean value will apply. |

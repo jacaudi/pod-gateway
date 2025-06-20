@@ -24,7 +24,7 @@ spec:
         resources: ["pods"]
   matchConditions:
     - name: has-annotations
-      expression: 'object.metadata.annotations["setGateway"] == "true"'
+      expression: 'object.metadata.annotations[{{ .Values.policy.gatewayAnnotation | quote }}] == {{ .Values.policy.gatewayAnnotationValue | quote }}'
   failurePolicy: Fail
   reinvocationPolicy: IfNeeded
   mutations:

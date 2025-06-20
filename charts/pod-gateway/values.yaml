@@ -134,3 +134,10 @@ initContainers:
 
 # -- Name of the configmap to mount for injected containers
 configMapName: "pod-gateway-config"
+
+policy:
+  # -- Annotation key to trigger gateway injection
+  gatewayAnnotation: setGateway
+  # -- Annotation value to trigger gateway injection
+  gatewayAnnotationValue: "true"
+  # -- (other policy settings can go here)
