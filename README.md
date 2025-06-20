@@ -55,4 +55,18 @@ You need to create the following secrets (not needed within the k8s-at-home org 
 Testing requires multiple containers - see the [gateway-admision-controller](../../../gateway-admision-controller)
 and check the [Makefile](Makefile) for other build targets.
 
+## Container Package Overview
+
+The container image includes the following packages:
+
+- **coreutils**: Provides full-featured chown and chmod (required for dhclient, which uses options not supported by busybox).
+- **dnsmasq-dnssec**: DNS & DHCP server with DNSSEC support.
+- **iproute2**: Provides advanced networking tools (e.g., bridge, ip, etc.).
+- **bind-tools**: Includes dig and other DNS utilities.
+- **inotify-tools**: Provides inotifyd, used for monitoring resolv.conf changes for dnsmasq reload circumvention.
+- **iptables/ip6tables**: For firewall and NAT rules (IPv4 and IPv6).
+- **curl, wget**: For external IP checks and debugging.
+
+These packages are required for the pod-gateway's networking, DNS, DHCP, and firewall functionality.
+
 

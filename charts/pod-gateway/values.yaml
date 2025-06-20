@@ -105,3 +105,32 @@ addons:
           - ipBlock:
               # Cluster IPs (default k3s)
               cidr: 10.0.0.0/8
+
+# -- Additional labels for the podgateway configmap
+configmap:
+  labels: {}
+  annotations: {}
+
+# -- Additional files to include in the podgateway configmap
+extraFiles: {}
+
+# -- CoreDNS configuration
+coredns:
+  bindAddress: "127.0.0.2"
+  logClass: "error"
+  upstreamDns: "tls://9.9.9.9 tls://149.112.112.112"
+  tlsServerName: "dns.quad9.net"
+  clusterDns: "172.17.0.10"
+  labels: {}
+  annotations: {}
+  extraCorefile: ""
+
+# -- InitContainers configuration
+initContainers:
+  coredns:
+    repository: "mirror.gcr.io/coredns/coredns"
+    tag: "1.12.1"
+    restartPolicy: "Always"
+
+# -- Name of the configmap to mount for injected containers
+configMapName: "pod-gateway-config"

@@ -1,4 +1,4 @@
-{{- include "bjw-s.common.loader.init" . -}}
+{{- include "bjw-s-labs.common.loader.init" . -}}
 {{- range $namespace := append .Values.routed_namespaces .Release.Namespace }}
 ---
 apiVersion: v1
@@ -8,32 +8,43 @@ metadata:
   namespace: {{ $namespace }}
   labels:
     {{- include "bjw-s.common.lib.metadata.allLabels" $ | nindent 4 }}
-data:                                                                                                        
-    corefile: |-                                                                                               
-      .:53 {
-          bind 127.0.0.2                                                                                       
-          rewrite stop type AAAA A                                                                             
-          errors                                                                                               
-          health :8081 {                                                                                       
-              lameduck 5s                                                                                      
-          }                                                                                                    
-          log {                                                                                                
-              class error                                                                                      
-          }                                                                                                    
-          forward . tls://9.9.9.9 tls://149.112.112.112 {                                                      
-              tls_servername dns.quad9.net                                                                     
-              policy sequential                                                                                
-              health_check 5s                                                                                  
-          }                                                                                                    
-          reload                                                                                               
-      }                                                                                                        
-                                                                                                               
-      cluster.local:53 {                                                                                       
-          bind 127.0.0.2                                                                                       
-          rewrite stop type AAAA A                                                                             
-          errors                                                                                               
-          log {                                                                                                
-              class error                                                                                      
-          }                                                                                                    
-          forward . 172.17.0.10                                                                                
-      }
+    {{- with $.Values.coredns.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- with $.Values.coredns.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  corefile: |-
+    .:53 {
+        bind {{ $.Values.coredns.bindAddress | default "127.0.0.2" }}
+        rewrite stop type AAAA A
+        errors
+        health :8081 {
+            lameduck 5s
+        }
+        log {
+            class {{ $.Values.coredns.logClass | default "error" }}
+        }
+        forward . {{ $.Values.coredns.upstreamDns | default "tls://9.9.9.9 tls://149.112.112.112" }} {
+            tls_servername {{ $.Values.coredns.tlsServerName | default "dns.quad9.net" }}
+            policy sequential
+            health_check 5s
+        }
+        reload
+    }
+
+    cluster.local:53 {
+        bind {{ $.Values.coredns.bindAddress | default "127.0.0.2" }}
+        rewrite stop type AAAA A
+        errors
+        log {
+            class {{ $.Values.coredns.logClass | default "error" }}
+        }
+        forward . {{ $.Values.coredns.clusterDns | default "172.17.0.10" }}
+    }
+    {{- if $.Values.coredns.extraCorefile }}
+    {{ $.Values.coredns.extraCorefile | nindent 4 }}
+    {{- end }}
+{{- end }}

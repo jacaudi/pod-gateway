@@ -1,20 +1,18 @@
 name: "Charts: Lint"
 
 on:
-  workflow_call:
-    inputs:
-      checkoutCommit:
-        required: true
-        type: string
-      isRenovatePR:
-        required: true
-        default: 'false'
-        type: string
-      chartsToLint:
-        description: >
-          A JSON encoded array of charts to lint
-        required: true
-        type: string
+  push:
+    branches-ignore:
+      - main
+    tags-ignore:
+      - "v*"
+    paths:
+      - "charts/*"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "charts/*"
 
 env:
   HELM_VERSION: 3.17.2
@@ -60,6 +58,11 @@ jobs:
 
       - name: Run chart-testing (install)
         run: ct lint --config .ci/ct/ct.yaml --charts "charts/${{ matrix.chart }}"
+
+      - name: Summarize linted charts
+        run: |
+          echo "Linted charts:"
+          echo ${{ inputs.chartsToLint }}
 
   # Summarize matrix https://github.community/t/status-check-for-a-matrix-jobs/127354/7
   lint_success:

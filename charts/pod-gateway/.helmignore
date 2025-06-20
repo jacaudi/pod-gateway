@@ -6,6 +6,7 @@
 .git/
 .gitignore
 .github
+.copilot/** */
 .bzr/
 .bzrignore
 .hg/

@@ -3,18 +3,16 @@ name: "Charts: Release"
 concurrency: helm-release
 
 on:
-  workflow_dispatch:
-    inputs:
-      charts:
-        description: >
-          Charts to release. Comma-separated string.
-          Defaults to releasing everything.
-        default: ""
-        required: false
-
   push:
     branches:
-      - master
+      - main
+    tags:
+      - "v*"
+    paths:
+      - "charts/*"
+  pull_request:
+    branches:
+      - main
     paths:
       - "charts/*"
 
@@ -24,7 +22,6 @@ env:
 jobs:
   prepare:
     name: Prepare data required for release
-    #runs-on: ["self-hosted", "X64"]
     runs-on: ubuntu-latest
     outputs:
       charts-to-release: ${{ steps.collect-charts.outputs.charts }}
@@ -39,7 +36,11 @@ jobs:
         id: collect-charts
         with:
           repoConfigFile: ./.ci/repo-config.yaml
-          overrideCharts: "[${{ inputs.charts }}]"
+          overrideCharts: "[${{ inputs.charts || '' }}]"
+
+      - name: Summarize released charts
+        run: |
+          echo "Charts prepared for release: ${{ steps.collect-charts.outputs.charts }}"
 
   release-github-pages:
     name: Release Charts to GitHub pages
@@ -52,3 +53,31 @@ jobs:
       contents: write
       packages: write
     secrets: inherit
+
+  publish-oci-chart:
+    name: Publish Helm Chart as OCI Artifact
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Package chart
+        run: |
+          helm dependency update charts/pod-gateway
+          helm package charts/pod-gateway --destination packaged
+          mv packaged/pod-gateway-*.tgz packaged/pod-gateway-chart-$(date +%Y%m%d%H%M%S).tgz
+
+      - name: Push chart to OCI registry
+        run: |
+          helm registry login ghcr.io -u ${{ github.actor }} --password-stdin <<< ${{ secrets.GITHUB_TOKEN }}
+          helm push packaged/pod-gateway-chart-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+      - name: Summarize OCI chart publish
+        run: |
+          echo "Published pod-gateway-chart to OCI registry: ghcr.io/${{ github.repository_owner }}/charts"

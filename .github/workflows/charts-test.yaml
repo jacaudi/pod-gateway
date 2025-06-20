@@ -1,27 +1,55 @@
 name: "Charts: Test"
 
 on:
-  workflow_call:
-    inputs:
-      checkoutCommit:
-        required: true
-        type: string
-      chartsToTest:
-        description: >
-          A JSON encoded array of charts to lint
-        type: string
-        required: true
-      overrideDeps:
-        description: >
-          A JSON encoded array of dependencies to override before testing
-        type: string
-        required: false
-        default: "[]"
+  push:
+    branches-ignore:
+      - main
+    tags-ignore:
+      - "v*"
+    paths:
+      - "charts/*"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "charts/*"
 
 env:
   HELM_VERSION: 3.17.2
 
 jobs:
+  render-helm-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Render Helm templates with default values
+        run: |
+          helm dependency update charts/pod-gateway
+          helm template pod-gateway charts/pod-gateway --namespace test --values charts/pod-gateway/values.yaml > rendered.yaml
+
+      - name: Check for YAML syntax errors
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: rendered.yaml
+
+      - name: Upload rendered YAML as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-yaml
+          path: rendered.yaml
+
+      - name: Summarize rendered templates
+        run: |
+          echo "Rendered Helm templates for pod-gateway with default values."
+          ls -lh rendered.yaml
+  
   install-chart:
     name: Install chart
     #runs-on: ["self-hosted", "X64"]
@@ -72,6 +100,13 @@ jobs:
       - name: Run chart-testing (install)
         run: ct install --config .ci/ct/ct.yaml --charts "charts/${{ matrix.chart }}"
 
+      - name: Lint Helm chart
+        run: helm lint "charts/${{ matrix.chart }}"
+
+      - name: Summarize chart install and test
+        run: |
+          echo "Tested chart(s): ${{ inputs.chartsToTest }} on k8s version(s): ${{ matrix.k8s_version }}"
+
   # Summarize matrix https://github.community/t/status-check-for-a-matrix-jobs/127354/7
   install_success:
     needs:
@@ -115,6 +150,10 @@ jobs:
           helm dep update "charts/${{ matrix.chart }}"
           helm unittest -f "tests/**/*_test.yaml" "charts/${{ matrix.chart }}"
 
+      - name: Summarize unit test results
+        run: |
+          echo "Unit tested chart(s): ${{ inputs.chartsToTest }}"
+
   # Summarize matrix https://github.community/t/status-check-for-a-matrix-jobs/127354/7
   unittest_success:
     needs:
@@ -128,3 +167,28 @@ jobs:
       - name: Check unittest matrix status
         if: ${{ (inputs.chartsToTest != '[]' && inputs.chartsToTest != '') && needs.unittest-chart.result != 'success' }}
         run: exit 1
+
+  # --- Add container build and publish job ---
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/pod-gateway:latest

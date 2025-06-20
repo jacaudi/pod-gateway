@@ -1,5 +1,5 @@
 {{/* Make sure all variables are set properly */}}
-{{- include "bjw-s.common.loader.init" . }}
+{{- include "bjw-s-labs.common.loader.init" . }}
 
 {{/* Append the hardcoded settings */}}
 {{- define "pod-gateway.harcodedValues" -}}
@@ -43,15 +43,13 @@ initContainers:
       privileged: true
 
   coredns:
-    dependsOn:
-      - routes
     image:
-      repository: mirror.gcr.io/coredns/coredns
-      tag: 1.12.1
+      repository: {{ .Values.initContainers.coredns.repository | default "mirror.gcr.io/coredns/coredns" | quote }}
+      tag: {{ .Values.initContainers.coredns.tag | default "1.12.1" | quote }}
     args:
       - -conf
       - /etc/coredns/corefile
-    restartPolicy: Always
+    restartPolicy: {{ .Values.initContainers.coredns.restartPolicy | default "Always" | quote }}
 
 probes:
   liveness:
@@ -73,4 +71,4 @@ service:
 {{- $_ := mergeOverwrite .Values (include "pod-gateway.harcodedValues" . | fromYaml) -}}
 
 {{/* Render the templates */}}
-{{ include "bjw-s.common.loader.all" . }}
+{{ include "bjw-s-labs.common.loader.all" . }}

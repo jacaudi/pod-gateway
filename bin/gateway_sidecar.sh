@@ -1,35 +1,50 @@
-#!/bin/bash
+#!/bin/sh
+set -euo pipefail
 
-set -ex
+# --- Utility functions ---
+require_var() {
+  VAR_NAME="$1"
+  if [ -z "${!VAR_NAME:-}" ]; then
+    echo "ERROR: Required variable $VAR_NAME is not set." >&2
+    exit 1
+  fi
+}
 
-# Load main settings
-cat /default_config/settings.sh
-. /default_config/settings.sh
-cat /config/settings.sh
-. /config/settings.sh
+# --- Load main settings ---
+if [ -f /default_config/settings.sh ]; then
+  . /default_config/settings.sh
+fi
+if [ -f /config/settings.sh ]; then
+  . /config/settings.sh
+fi
 
-# Make a copy of the original resolv.conf (so we can get the K8S DNS in case of a container reboot)
+require_var VXLAN_IP_NETWORK
+require_var VXLAN_GATEWAY_FIRST_DYNAMIC_IP
+require_var RESOLV_CONF_COPY
+
+# --- Make a copy of the original resolv.conf (for K8S DNS recovery) ---
 if [ ! -f /etc/resolv.conf.org ]; then
   cp /etc/resolv.conf /etc/resolv.conf.org
   echo "/etc/resolv.conf.org written"
 fi
 
-# Get K8S DNS if not set (only IPv4 addresses)
-if [ -z "$DNS_LOCAL_SERVER" ]; then
+# --- Get K8S DNS if not set (only IPv4 addresses) ---
+if [ -z "${DNS_LOCAL_SERVER:-}" ]; then
   DNS_LOCAL_SERVER=$(grep nameserver /etc/resolv.conf.org | awk '/nameserver [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}')
 fi
 
+# --- Generate dnsmasq config for DHCP and DNS ---
+VXLAN_IP_NETWORK_PREFIX=$(echo "$VXLAN_IP_NETWORK" | awk -F'[./]' '{print $1 "." $2 "." $3}')
 cat << EOF > /etc/dnsmasq.d/pod-gateway.conf
 # DHCP server settings
 interface=vxlan0
 bind-interfaces
 
 # Dynamic IPs assigned to PODs - we keep a range for static IPs
-VXLAN_IP_NETWORK_PREFIX=$(echo "$VXLAN_IP_NETWORK" | awk -F'[./]' '{print $1 "." $2 "." $3}')
 dhcp-range=${VXLAN_IP_NETWORK_PREFIX}.${VXLAN_GATEWAY_FIRST_DYNAMIC_IP},${VXLAN_IP_NETWORK_PREFIX}.255,12h
 
 # For debugging purposes, log each DNS query as it passes through
-# dnsmasq.
+dnsmasq.
 log-queries
 
 # Log lots of extra information about DHCP transactions.
@@ -47,7 +62,8 @@ clear-on-reload
 resolv-file=${RESOLV_CONF_COPY}
 EOF
 
-if [[ ${GATEWAY_ENABLE_DNSSEC} == true ]]; then
+# --- Optionally enable DNSSEC if requested ---
+if [ "${GATEWAY_ENABLE_DNSSEC:-false}" = "true" ]; then
 cat << EOF >> /etc/dnsmasq.d/pod-gateway.conf
   # Enable DNSSEC validation and caching
   conf-file=/usr/share/dnsmasq/trust-anchors.conf
@@ -55,6 +71,7 @@ cat << EOF >> /etc/dnsmasq.d/pod-gateway.conf
 EOF
 fi
 
+# --- Forward local DNS queries to K8S DNS server ---
 for local_cidr in $DNS_LOCAL_CIDRS; do
   cat << EOF >> /etc/dnsmasq.d/pod-gateway.conf
   # Send ${local_cidr} DNS queries to the K8S DNS server
@@ -62,28 +79,24 @@ for local_cidr in $DNS_LOCAL_CIDRS; do
 EOF
 done
 
-# Make a copy of /etc/resolv.conf
+# --- Make a copy of /etc/resolv.conf for dnsmasq ---
 /bin/copy_resolv.sh
 
-# Dnsmasq daemon
+# --- Start dnsmasq and inotifyd, handle shutdown ---
 dnsmasq -k &
 dnsmasq=$!
 
-# inotifyd to keep in sync resolv.conf copy
-# Monitor file content (c) and metadata (e) changes
+# Monitor /etc/resolv.conf for changes and keep the copy in sync
 inotifyd /bin/copy_resolv.sh /etc/resolv.conf:ce &
 inotifyd=$!
 
 _kill_procs() {
   echo "Signal received -> killing processes"
-
-  kill -TERM $dnsmasq || /bin/true
+  kill -TERM $dnsmasq || true
   wait $dnsmasq
   rc=$?
-
-  kill -TERM $inotifyd || /bin/true
+  kill -TERM $inotifyd || true
   wait $inotifyd
-
   rc=$(( $rc || $? ))
   echo "Terminated with RC: $rc"
   exit $rc
@@ -92,10 +105,10 @@ _kill_procs() {
 # Setup a trap to catch SIGTERM and relay it to child processes
 trap _kill_procs SIGTERM
 
-#Wait for any children to terminate
+# Wait for any children to terminate
 wait -n
 
 echo "TERMINATING"
 
-# kill remaining processes
+# Kill remaining processes
 _kill_procs

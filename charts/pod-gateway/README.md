@@ -67,5 +67,20 @@ Kubernetes: `>=1.16.0-0`
 | webhook.namespaceSelector | object | `{"custom":{},"label":"routed-gateway","type":"label"}` | Selector for namespace. All pods in this namespace will get evaluated by the webhook. **IMPORTANT**: Do not select the namespace where the webhook is deployed to or you will get locking issues. |
 | webhook.replicas | int | `1` | number of webhook instances to deploy |
 | webhook.strategy | object | `{"type":"RollingUpdate"}` | strategy for updates |
+| configmap.labels | object | `{}` | Additional labels for the podgateway configmap |
+| configmap.annotations | object | `{}` | Additional annotations for the podgateway configmap |
+| extraFiles | object | `{}` | Additional files to include in the podgateway configmap |
+| coredns.bindAddress | string | `"127.0.0.2"` | CoreDNS bind address |
+| coredns.logClass | string | `"error"` | CoreDNS log class |
+| coredns.upstreamDns | string | `"tls://9.9.9.9 tls://149.112.112.112"` | CoreDNS upstream DNS servers |
+| coredns.tlsServerName | string | `"dns.quad9.net"` | CoreDNS TLS server name |
+| coredns.clusterDns | string | `"172.17.0.10"` | CoreDNS cluster DNS |
+| coredns.labels | object | `{}` | Additional labels for the coredns configmap |
+| coredns.annotations | object | `{}` | Additional annotations for the coredns configmap |
+| coredns.extraCorefile | string | `""` | Extra Corefile configuration for CoreDNS |
+| initContainers.coredns.repository | string | `"mirror.gcr.io/coredns/coredns"` | CoreDNS initContainer image repository |
+| initContainers.coredns.tag | string | `"1.12.1"` | CoreDNS initContainer image tag |
+| initContainers.coredns.restartPolicy | string | `"Always"` | CoreDNS initContainer restart policy |
+| configMapName | string | `"pod-gateway-config"` | Name of the configmap to mount for injected containers |
 
 ----------------------------------------------

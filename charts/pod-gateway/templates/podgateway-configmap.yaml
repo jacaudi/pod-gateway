@@ -1,4 +1,4 @@
-{{- include "bjw-s.common.loader.init" . -}}
+{{- include "bjw-s-labs.common.loader.init" . -}}
 {{- range $namespace := append .Values.routed_namespaces .Release.Namespace }}
 ---
 apiVersion: v1
@@ -8,6 +8,13 @@ metadata:
   namespace: {{ $namespace }}
   labels:
     {{- include "bjw-s.common.lib.metadata.allLabels" $ | nindent 4 }}
+    {{- with $.Values.configmap.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- with $.Values.configmap.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 data:
   settings.sh: |
     #!/bin/sh
@@ -41,4 +48,11 @@ data:
         {{- $port.type | required "Missing port type" }}:{{ $port.port | required "Missing port number" -}}
       {{- end }}
     {{- end }}
+  # Extra user-defined files
+  {{- with $.Values.extraFiles }}
+  {{- range $filename, $content := . }}
+  {{ $filename }}: |-
+    {{ $content | nindent 4 }}
+  {{- end }}
+  {{- end }}
 {{- end -}}

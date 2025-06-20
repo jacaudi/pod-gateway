@@ -1,20 +1,20 @@
-{{- include "bjw-s.common.loader.init" . -}}
+{{- include "bjw-s-labs.common.loader.init" . -}}
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.32.0/mutatingadmissionpolicybinding-admissionregistration-v1alpha1.json
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicyBinding
 metadata:
-  name: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}
+  name: {{ include "bjw-s-labs.common.lib.chart.names.fullname" . | quote }}
   labels:
-    {{- include "bjw-s.common.lib.metadata.allLabels" . | nindent 4 }}
+    {{- include "bjw-s-labs.common.lib.metadata.allLabels" . | nindent 4 }}
 spec:
-  policyName: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}-policy
+  policyName: {{ include "bjw-s-labs.common.lib.chart.names.fullname" . | quote }}-policy
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.32.0/mutatingadmissionpolicy-admissionregistration-v1alpha1.json
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: MutatingAdmissionPolicy
 metadata:
-  name: {{ include "bjw-s.common.lib.chart.names.fullname" . | quote }}-policy
+  name: {{ include "bjw-s-labs.common.lib.chart.names.fullname" . | quote }}-policy
 spec:
   matchConstraints:
     resourceRules:
@@ -32,36 +32,51 @@ spec:
       jsonPatch:
         expression: >
           [
-            JSONPatch{
-              op: "add", path: "/spec/template/spec/initContainers",
-              value: []
-            },
-            JSONPatch{
-              op: "add", path: "/spec/template/spec/initContainers/-",
-              value: Object.spec.template.spec.initContainers{
-                name: "route",
-                image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
-                imagePullPolicy: {{ .Values.image.pullPolicy }},
-                command: ["/bin/client_init.sh"],
-                securityContext: { privileged: true },
-                volumeMounts: [
-                  Object.spec.template.spec.volumeMounts{
-                    name: "config", mountPath: "/config", readOnly: true
+            {
+              "op": "add",
+              "path": "/spec/volumes/-",
+              "value": {
+                "name": "config",
+                "configMap": {
+                  "name": "{{ .Values.configMapName }}"
+                }
               }
             },
-            JSONPatch{
-              op: "add", path: "/spec/template/spec/initContainers/-",
-              value: Object.spec.template.spec.initContainers{
-                name: "gateway",
-                image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }},
-                imagePullPolicy: {{ .Values.image.pullPolicy }},
-                command: ["/bin/client_sidecar.sh"],
-                securityContext: { privileged: true },
-                restartPolicy: Always,
-                dependsOn: ["route"],
-                volumeMounts: [
-                  Object.spec.template.spec.volumeMounts{
-                    name: "config", mountPath: "/config", readOnly: true
+            {
+              "op": "add",
+              "path": "/spec/initContainers/-",
+              "value": {
+                "name": "route",
+                "image": "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}",
+                "imagePullPolicy": "{{ .Values.image.pullPolicy }}",
+                "command": ["/bin/client_init.sh"],
+                "securityContext": { "privileged": true },
+                "volumeMounts": [
+                  {
+                    "name": "config",
+                    "mountPath": "/config",
+                    "readOnly": true
+                  }
+                ]
+              }
+            },
+            {
+              "op": "add",
+              "path": "/spec/initContainers/-",
+              "value": {
+                "name": "gateway",
+                "image": "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}",
+                "imagePullPolicy": "{{ .Values.image.pullPolicy }}",
+                "command": ["/bin/client_sidecar.sh"],
+                "securityContext": { "privileged": true },
+                "restartPolicy": "Always",
+                "volumeMounts": [
+                  {
+                    "name": "config",
+                    "mountPath": "/config",
+                    "readOnly": true
+                  }
+                ]
               }
             }
           ]
