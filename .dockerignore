@@ -1,6 +1,6 @@
 .git
 .gitignore
 .github
-charts/**
+charts/
 Makefile
-.copilot/** */
+.copilot/

@@ -6,7 +6,7 @@
 .git/
 .gitignore
 .github
-.copilot/** */
+.copilot/
 .bzr/
 .bzrignore
 .hg/
@@ -29,5 +29,5 @@ OWNERS
 # Docker
 Dockerfile
 .dockerignore
-bin/**
-config/**
+bin/
+config/
