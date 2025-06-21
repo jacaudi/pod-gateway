@@ -1,4 +1,4 @@
-{{- include "bjw-s-labs.common.loader.init" . -}}
+{{- include "bjw-s.common.loader.init" . -}}
 {{- range $namespace := append .Values.routed_namespaces .Release.Namespace }}
 ---
 apiVersion: v1

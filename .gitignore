@@ -1,2 +1,8 @@
 app
 .copilot/
+# Helm chart build artifacts
+charts/pod-gateway/charts/
+charts/pod-gateway/Chart.lock
+charts/pod-gateway/packaged/
+charts/pod-gateway/*.tgz
+rendered.yaml
